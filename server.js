@@ -13,7 +13,7 @@ app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 // Your Gemini API Key
-const GEMINI_API_KEY = 'AIzaSyAL1qYxoUQ7Fy16TDfHtqixjiWWXNhr0PE';  // ← PUT YOUR KEY HERE
+const GEMINI_API_KEY = 'AIzaSyAL1qYxoUQ7Fy16TDfHtqixjiWWXNhr0PE';
 
 // Health check endpoint
 app.get('/', (req, res) => {
@@ -31,29 +31,35 @@ app.post('/analyze-food', async (req, res) => {
     console.log('=== FOOD ANALYSIS REQUEST RECEIVED ===');
     
     try {
-        const { imageUrl, userEmail, userName } = req.body;
+        const { imageBase64, imageUrl, userEmail, userName } = req.body;
         
         console.log('User:', userName, userEmail);
-        console.log('Image URL:', imageUrl);
         
-        if (!imageUrl) {
+        let base64Image;
+        
+        // Check if base64 was sent directly from Cliq
+        if (imageBase64) {
+            console.log('Using base64 image from request (direct from Cliq)');
+            base64Image = imageBase64;
+        }
+        // Or if URL was sent, download it
+        else if (imageUrl) {
+            console.log('Downloading image from URL:', imageUrl);
+            const imageResponse = await axios.get(imageUrl, {
+                responseType: 'arraybuffer',
+                timeout: 30000
+            });
+            base64Image = Buffer.from(imageResponse.data, 'binary').toString('base64');
+            console.log('Image converted to base64');
+        }
+        else {
             return res.status(400).json({ 
-                error: 'No image URL provided' 
+                success: false,
+                error: 'No image provided (need imageBase64 or imageUrl)' 
             });
         }
         
-        // Step 1: Download image from Cliq
-        console.log('Downloading image...');
-        const imageResponse = await axios.get(imageUrl, {
-            responseType: 'arraybuffer',
-            timeout: 30000
-        });
-        
-        // Convert to base64
-        const imageBase64 = Buffer.from(imageResponse.data, 'binary').toString('base64');
-        console.log('Image converted to base64');
-        
-        // Step 2: Prepare Gemini API request
+        // Prepare Gemini API request
         const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
         
         const prompt = `You are a nutrition expert. Analyze this food image and provide detailed nutritional information.
@@ -91,14 +97,14 @@ Important:
                     {
                         inline_data: {
                             mime_type: 'image/jpeg',
-                            data: imageBase64
+                            data: base64Image
                         }
                     }
                 ]
             }]
         };
         
-        // Step 3: Call Gemini API
+        // Call Gemini API
         console.log('Calling Gemini API...');
         const geminiResponse = await axios.post(geminiUrl, geminiPayload, {
             headers: { 'Content-Type': 'application/json' },
@@ -107,7 +113,7 @@ Important:
         
         console.log('Gemini API response received');
         
-        // Step 4: Parse response
+        // Parse response
         const textResponse = geminiResponse.data.candidates[0].content.parts[0].text;
         console.log('Raw response:', textResponse);
         
@@ -126,7 +132,7 @@ Important:
         const foodData = JSON.parse(cleanedResponse);
         console.log('Parsed food data:', foodData);
         
-        // Step 5: Return structured response
+        // Return structured response
         res.json({
             success: true,
             data: foodData,
@@ -143,7 +149,7 @@ Important:
         res.status(500).json({
             success: false,
             error: error.message,
-            details: error.response?.data || error.stack
+            details: error.response?.data || 'Check server logs'
         });
     }
 });
@@ -154,4 +160,5 @@ app.listen(PORT, () => {
     console.log(`📡 Server running on port ${PORT}`);
     console.log(`🔗 Local URL: http://localhost:${PORT}`);
     console.log(`✅ Ready to analyze food images!`);
+    console.log('📸 Accepts: imageBase64 (from Cliq) or imageUrl');
 });
