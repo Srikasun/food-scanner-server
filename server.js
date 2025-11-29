@@ -13,7 +13,7 @@ app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 // Your Gemini API Key
-const GEMINI_API_KEY = 'AIzaSyAL1qYxoUQ7Fy16TDfHtqixjiWWXNhr0PE';
+const GEMINI_API_KEY = 'AIzaSyDIkWkWR-Cm1IZnYpy5xC61Nr47ymQbJm4';
 
 // Health check endpoint
 app.get('/', (req, res) => {
