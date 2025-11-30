@@ -124,20 +124,8 @@ Important:
         const textResponse = geminiResponse.data.candidates[0].content.parts[0].text;
         console.log('Raw response:', textResponse);
         
-let cleanedResponse = textResponse.trim();
-if (cleanedResponse.includes("```
-  const start = cleanedResponse.indexOf("{");
-  const end = cleanedResponse.lastIndexOf("}") + 1;
-  cleanedResponse = cleanedResponse.substring(start, end);
-} else if (cleanedResponse.includes("```")) {
-  const start = cleanedResponse.indexOf("{");
-  const end = cleanedResponse.lastIndexOf("}") + 1;
-  cleanedResponse = cleanedResponse.substring(start, end);
-}
+const foodData = JSON.parse(textResponse.trim());
 
-
-        
-        const foodData = JSON.parse(cleanedResponse);
         console.log('Parsed food data:', foodData);
         
         // Return structured response
