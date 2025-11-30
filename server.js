@@ -12,8 +12,8 @@ app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
-// Your Gemini API Key
-const GEMINI_API_KEY = 'AIzaSyDIkWkWR-Cm1IZnYpy5xC61Nr47ymQbJm4';
+// Your Gemini API Key from environment (Render → Environment → GEMINI_API_KEY)
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 // Health check endpoint
 app.get('/', (req, res) => {
@@ -31,6 +31,13 @@ app.post('/analyze-food', async (req, res) => {
     console.log('=== FOOD ANALYSIS REQUEST RECEIVED ===');
     
     try {
+        if (!GEMINI_API_KEY) {
+            return res.status(500).json({
+                success: false,
+                error: 'GEMINI_API_KEY is not set in environment variables'
+            });
+        }
+
         const { imageBase64, imageUrl, userEmail, userName } = req.body;
         
         console.log('User:', userName, userEmail);
@@ -119,7 +126,7 @@ Important:
         
         // Clean response (remove markdown if present)
         let cleanedResponse = textResponse.trim();
-        if (cleanedResponse.includes('```json')) {
+        if (cleanedResponse.includes('```
             const start = cleanedResponse.indexOf('{');
             const end = cleanedResponse.lastIndexOf('}') + 1;
             cleanedResponse = cleanedResponse.substring(start, end);
